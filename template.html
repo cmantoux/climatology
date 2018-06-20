@@ -1,0 +1,14 @@
+<div style='position: absolute; top: 50%; width: 200px; text-align: center; background-color:rgba(224, 224, 224, 0.931)'>
+    <div>
+    <strong>
+        Mean on last 10 values : 
+    </strong>
+    </div>
+    <div>
+    <ul style='list-style: none;'>
+        {% for i in inds %}
+        <li>{{key}}[{{i}}] = {{variable[i]}}</li>
+        {% endfor %}
+    </ul>
+    </div>
+</div>
