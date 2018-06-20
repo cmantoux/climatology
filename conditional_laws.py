@@ -1,9 +1,7 @@
 import numpy as np
-from utils import get_cov, log_p, get_toeplitz
 from scipy.linalg import solve_toeplitz, toeplitz
-from scipy.stats import truncnorm
 
-def simul_alpha(model, memory = "AR1"):
+def simul_alpha(model, noise):
     '''
     Simulate alpha in Gibbs sampler knowing all other parameters
     '''
@@ -12,7 +10,7 @@ def simul_alpha(model, memory = "AR1"):
 
     T = np.concatenate((params['T13']()[:past], data['T2']()))
     T = np.array([np.ones((present)), T])
-    cov_top = get_toeplitz(present, params['HK']()[0], memory=memory)
+    cov_top = noise.get_toeplitz(present, params['HK']()[0])
     b = solve_toeplitz(cov_top, T.T)
     P1 = np.dot(T, b)
     P2 = np.dot(data['RP'](), b)
@@ -21,7 +19,7 @@ def simul_alpha(model, memory = "AR1"):
     delta = 1/params['sigma_p']()**2 * P2 + np.array([0,1])
     return np.random.multivariate_normal(mean = np.dot(delta, omega), cov = omega)
 
-def simul_beta(model, memory = "AR1"):
+def simul_beta(model, noise):
     '''
     Simulate beta in Gibbs sampler knowing all other parameters
     '''
@@ -29,7 +27,7 @@ def simul_beta(model, memory = "AR1"):
     past, future = constants['past'](), constants['future']()
     T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
     F = np.array([np.ones((future)), data['S'](), data['V'](), data['C']()])
-    cov_top = get_toeplitz(future, params['HK']()[1], memory=memory)
+    cov_top = noise.get_toeplitz(future, params['HK']()[1])
     b = solve_toeplitz(cov_top, F.T)
     P1 = np.dot(F, b)
     P2 = np.dot(T, b)
@@ -37,7 +35,7 @@ def simul_beta(model, memory = "AR1"):
     delta = 1/params['sigma_T']()**2 * P2 + np.array([0,1,1,1])
     return np.random.multivariate_normal(mean = np.dot(delta, omega), cov = omega)
 
-def simul_s_p(model, memory = "AR1"):
+def simul_s_p(model, noise):
     '''
     Simulate sigma_p in Gibbs sampler knowing all other parameters
     '''
@@ -45,7 +43,7 @@ def simul_s_p(model, memory = "AR1"):
     past, present = constants['past'](), constants['present']()
     T = np.concatenate((params['T13']()[:past], data['T2']()))
     T = np.array([np.ones((present)), T])
-    cov_top = get_toeplitz(present, params['HK']()[0], memory=memory)
+    cov_top = noise.get_toeplitz(present, params['HK']()[0])
     P1 = np.dot(params['alpha'](), T)
     b = solve_toeplitz(cov_top, data['RP']() - P1)
     P2 = np.dot((data['RP']() - P1).T,b)
@@ -53,7 +51,7 @@ def simul_s_p(model, memory = "AR1"):
     r = 0.1 + 1/2 * P2
     return np.sqrt(1/np.random.gamma(shape = q, scale = 1/r))
 
-def simul_s_T(model, memory = "AR1"):
+def simul_s_T(model, noise):
     '''
     Simulate sigma_T in Gibbs sampler knowing all other parameters
     '''
@@ -61,7 +59,7 @@ def simul_s_T(model, memory = "AR1"):
     past, future = constants['past'](), constants['future']()
     T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
     F = np.array([np.ones((future)), data['S'](), data['V'](), data['C']()])
-    cov_top = get_toeplitz(future, params['HK']()[1], memory=memory)
+    cov_top = noise.get_toeplitz(future, params['HK']()[1])
     P1 = np.dot(params['beta'](), F)
     b = solve_toeplitz(cov_top, T - P1)
     P2 = np.dot((T - P1).T,b)
@@ -69,15 +67,15 @@ def simul_s_T(model, memory = "AR1"):
     r = 0.1 + 1/2 * P2
     return np.sqrt(1/np.random.gamma(shape = q, scale = 1/r))
 
-def simul_T(model, memory = "AR1"):
+def simul_T(model, noise):
     '''
     Simulate T13 in Gibbs sampler knowing all other parameters
     '''
     params, data, constants = model.params, model.data, model.constants
     past, present, future = constants['past'](), constants['present'](), constants['future']()
     F = np.array([np.ones((future)), data['S'](), data['V'](), data['C']()]).T
-    inv_covH = np.pad(np.linalg.inv(get_cov(present, params['HK']()[0], memory=memory)), pad_width=(0,future-present), mode = 'constant')
-    inv_covK = np.linalg.inv(get_cov(future, params['HK']()[1], memory=memory))
+    inv_covH = np.pad(np.linalg.inv(noise.get_cov(present, params['HK']()[0])), pad_width=(0,future-present), mode = 'constant')
+    inv_covK = np.linalg.inv(noise.get_cov(future, params['HK']()[1]))
     
     P1 = np.dot(inv_covH, np.pad(data['RP'](), pad_width=(0,future-present), mode = 'constant') - params['alpha']()[0])
     P2 = np.dot(inv_covK, np.dot(F, params['beta']()))
@@ -103,7 +101,7 @@ def simul_T(model, memory = "AR1"):
     T2 = new_mean2 + np.dot(np.linalg.cholesky(new_cov2), np.random.randn(len(new_mean2)))
     return T13, T2
 
-def simul_H_K(model, memory = "AR1"):
+def simul_H_K(model, noise):
     '''
     Simulate H and K in Gibbs sampler knowing all other parameters
     '''
@@ -111,10 +109,6 @@ def simul_H_K(model, memory = "AR1"):
     params, data, constants = model.params, model.data, model.constants
     HK = model.params['HK']()
     H, K = HK[0], HK[1]
-    if memory == "AR1":
-        lower, upper = -1, 1
-    else:
-        lower, upper = 0, 1
     
     step_H, step_K = constants['step_H'](), constants['step_K']()
     n_iteration = constants['n_iteration']()
@@ -122,11 +116,11 @@ def simul_H_K(model, memory = "AR1"):
     # Simulation of H
     acc = 0
     for k in range(n_iteration):
-        new_H = truncnorm.rvs((lower - H)/step_H, (upper-H)/step_H, loc = H, scale = step_H)
-        log_p1 = log_p(params, data, constants, 'H', new_H, memory=memory)
-        log_p2 = log_p(params, data, constants, 'H', H, memory=memory)
-        log_q1 = truncnorm.logpdf(new_H, (lower - H)/step_H, (upper-H)/step_H, loc = H, scale = step_H)
-        log_q2 = truncnorm.logpdf(H, (lower - new_H)/step_H, (upper-new_H)/step_H, loc = new_H, scale = step_H)
+        new_H = noise.draw_MH(H, step_H)
+        log_p1 = noise.log_p(params, data, constants, 'H', new_H)
+        log_p2 = noise.log_p(params, data, constants, 'H', H)
+        log_q1 = noise.log_q(new_H, step_H)
+        log_q2 = noise.log_q(H, step_H)
         alpha = log_p1 + log_q1 - log_p2 - log_q2
         a = np.random.uniform()
         if np.log(a) <= alpha: # Accept
@@ -136,11 +130,11 @@ def simul_H_K(model, memory = "AR1"):
     # Simulation of K
     acc = 0
     for k in range(n_iteration):
-        new_K = truncnorm.rvs((lower - K)/step_K, (upper-K)/step_K, loc = K, scale = step_K)
-        log_p1 = log_p(params, data, constants, 'K', new_K, memory=memory)
-        log_p2 = log_p(params, data, constants, 'K', K, memory=memory)
-        log_q1 = truncnorm.logpdf(new_K, (lower - K)/step_K, (upper-K)/step_K, loc = K, scale = step_K)
-        log_q2 = truncnorm.logpdf(K, (lower - new_K)/step_K, (upper-new_K)/step_K, loc = new_K, scale = step_K)
+        new_K = noise.draw_MH(K, step_K)
+        log_p1 = noise.log_p(params, data, constants, 'K', new_K)
+        log_p2 = noise.log_p(params, data, constants, 'K', K)
+        log_q1 = noise.log_q(new_K, step_K)
+        log_q2 = noise.log_q(K, step_K)
         alpha = log_p1 + log_q1 - log_p2 - log_q2
         a = np.random.uniform()
         if np.log(a) <= alpha: # Accept

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
+from utils import AR1
 
 import numpy as np
 from IPython.display import display
@@ -13,7 +14,7 @@ import xarray as xa
 
 class Gibbs:
 
-    def __init__(self, model, memory = "AR1", display_dashboard = False):
+    def __init__(self, model, noise = AR1(), display_dashboard = False):
         '''
         Gibbs sampler class (object):
         - params : dic of parameters with initial values
@@ -34,7 +35,7 @@ class Gibbs:
         self.x_ord = OrdinalScale()
         self.y_sc = LinearScale()
         self.x_data = np.array([])
-        self.memory = memory
+        self.noise = noise
         for key in model.params.keys():
             self.history[key] = []
 
@@ -42,7 +43,6 @@ class Gibbs:
         if display_dashboard:
             display(self.dashboard)
 
-    
     def run(self, n = 100, verbose = False):
         '''
         Run Gibbs sampler:
@@ -56,7 +56,6 @@ class Gibbs:
                 self.iteration(update_plot=True)
             else:
                 self.iteration()
-
     
     def iteration(self, update_plot = False):
         self.model.n_iteration += 1
@@ -90,10 +89,10 @@ class Gibbs:
     def simulate(self, key):
         var = self.model.params[key]
         if key == 'T13':
-            var.value, T = var.law(self.model, memory = self.memory)
+            var.value, T = var.law(self.model, noise = self.noise)
             self.T_check.append(T)
         else:    
-            var.value = var.law(self.model, memory = self.memory)
+            var.value = var.law(self.model, noise = self.noise)
         self.history[key].append(var.value)
 
     def result(self, key, last_n = 100):
@@ -111,7 +110,6 @@ class Gibbs:
     def get_results(self, keys, last_n = 100):
         for key in keys:
             self.result(key, last_n=last_n)
-
 
     def get_history(self, key):
         '''
@@ -198,4 +196,3 @@ class Gibbs:
         p2 = np.percentile(self.T_check, 100*(1+a)/2, axis=0)
         real_T = self.model.data['T2']()
         return np.mean((real_T<=p2)*(real_T>=p1))
-    
