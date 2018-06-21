@@ -183,11 +183,12 @@ class Gibbs:
         beta = xa.DataArray(self.get_history('beta'), dims = ['gibbs_it', 'd_beta'])
         sigma_p = xa.DataArray(self.get_history('sigma_p'), dims=['gibbs_it'])
         sigma_T = xa.DataArray(self.get_history('sigma_T'), dims=['gibbs_it'])
-        HK = xa.DataArray(self.get_history('HK'), dims = ['gibbs_it', 'd_HK'])
+        H = xa.DataArray(self.get_history('H'), dims = ['gibbs_it', 'd_H'])
+        K = xa.DataArray(self.get_history('K'), dims = ['gibbs_it', 'd_K'])
         T13 = xa.DataArray(self.get_history('T13'), dims = ['gibbs_it', 'year'], coords = [np.arange(n), np.concatenate([np.arange(self.model.t1,self.model.t2), np.arange(self.model.t3,self.model.t4)])])
         T_check = xa.DataArray(np.array(self.T_check), dims = ['gibbs_it', 'year'], coords = [np.arange(n), np.arange(self.model.t2,self.model.t3)])
 
-        Data = xa.Dataset({'RP':RP, 'S':S, 'V':V, 'C':C, 'T2':T2, 'T_check':T_check, 'alpha':alpha, 'beta':beta, 'sigma_p':sigma_p, 'sigma_T':sigma_T, 'HK':HK, 'T13':T13})
+        Data = xa.Dataset({'RP':RP, 'S':S, 'V':V, 'C':C, 'T2':T2, 'T_check':T_check, 'alpha':alpha, 'beta':beta, 'sigma_p':sigma_p, 'sigma_T':sigma_T, 'H':H, 'K':K, 'T13':T13})
         Data.to_netcdf(filename)
         return Data
     

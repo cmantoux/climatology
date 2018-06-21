@@ -1,4 +1,4 @@
-from conditional_laws import simul_alpha, simul_beta, simul_H_K, simul_s_p, simul_s_T, simul_T
+from conditional_laws import simul_alpha, simul_beta, simul_H, simul_K, simul_s_p, simul_s_T, simul_T
 import numpy as np
 
 class variable:
@@ -11,7 +11,7 @@ class variable:
             self.true_value = value
         else:
             self.true_value = true_value
-    
+
     def __repr__(self):
         return('{} = {} \n'.format(self.name, self.value))
 
@@ -26,7 +26,7 @@ class model:
         self.acc_H = 0
         self.acc_K = 0
         self.n_iteration = 0
-    
+
     def __repr__(self):
         s = ''
         s += '\n Constants: \n'
@@ -39,7 +39,7 @@ class model:
         for key in self.data.keys():
             s += self.data[key].__repr__()
         return s
-    
+
     def add(self, var):
         if type(var) != list:
             var = [var]
@@ -52,7 +52,7 @@ class model:
             except:
                 print('No type defined for {}'.format(x))
 
-    
+
     def delete(self, var):
         if type(var) != list:
             var = [var]
@@ -62,8 +62,8 @@ class model:
                 del dic[x.name]
             except:
                 print('Impossible to delete {}'.format(x.name))
-                
-    
+
+
     def eval(self, key):
         if key in self.params.keys():
             return self.params[key].law(self)
@@ -81,8 +81,9 @@ class PaleoModel(model):
         beta = variable(name='beta', var_type='params', value=np.array([0,1,1,1]),law = simul_beta)
         sigma_p = variable(name='sigma_p', var_type='params', value=1, law = simul_s_p)
         sigma_T = variable(name='sigma_T', var_type='params', value=1, law = simul_s_T)
-        
-        HK = variable(name='HK', var_type='params', value=np.array([H_init,K_init]), law = simul_H_K)
+
+        H = variable(name='H', var_type='params', value=H_init, law = simul_H)
+        K = variable(name='K', var_type='params', value=K_init, law = simul_K)
         T13 = variable(name='T13', var_type='params', value=np.zeros(past()+future()-present()),law = simul_T)
 
         self.t1 = t1
@@ -94,16 +95,15 @@ class PaleoModel(model):
         # beta = variable(name='beta', var_type='params', value=np.array([-0.57,0.02,-0.02,0.15]),law = simul_beta)
         # sigma_p = variable(name='sigma_p', var_type='params', value=0.007, law = simul_s_p)
         # sigma_T = variable(name='sigma_T', var_type='params', value=0.015, law = simul_s_T)
-        # HK = variable(name='HK', var_type='params', value=np.array([H_init,K_init]), law = simul_H_K)
+        # H = variable(name='H', var_type='params', value=H_init, law = simul_H)
+        # K = variable(name='K', var_type='params', value=K_init, law = simul_K)
         # T13 = variable(name='T13', var_type='params', value=np.load('T13.npy'),law = simul_T)
-        
+
         T2 = variable(name='T2', var_type='data', value = T2)
         RP = variable(name ='RP', var_type='data', value=RP)
         S = variable(name ='S', var_type='data', value=S)
         V = variable(name ='V', var_type='data', value=V)
         C = variable(name ='C', var_type='data', value=C)
-        
+
         super().__init__()
-        self.add([past, present, future, step_H, step_K, n_iteration, alpha, beta, sigma_p, sigma_T, HK, T13, T2, RP, S, V, C])
-
-
+        self.add([past, present, future, step_H, step_K, n_iteration, alpha, beta, sigma_p, sigma_T, H, K, T13, T2, RP, S, V, C])
