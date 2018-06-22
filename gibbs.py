@@ -14,7 +14,7 @@ import xarray as xa
 
 class Gibbs:
 
-    def __init__(self, model, noise_H = AR1(), noise_K=AR1(), display_dashboard = False):
+    def __init__(self, model, noise_H = AR1(), noise_K=AR1(), dashboard = False):
         '''
         Gibbs sampler class (object):
         - params : dic of parameters with initial values
@@ -39,10 +39,11 @@ class Gibbs:
         self.noise_K = noise_K
         for key in model.params.keys():
             self.history[key] = []
+        if dashboard:
+            self.dashboard = Dashboard(self.model)
+        else:
+            self.dashboard = None
 
-        self.dashboard = Dashboard(self.model)
-        if display_dashboard:
-            display(self.dashboard)
 
     def run(self, n = 100, verbose = False):
         '''
@@ -53,7 +54,7 @@ class Gibbs:
             self.x_data = np.arange(len(self.x_data)+1)
             if verbose:
                 print(self.model.params)
-            if k % 10 == 0:
+            if k % 10 == 0 and self.dashboard is not None:
                 self.iteration(update_plot=True)
             else:
                 self.iteration()
