@@ -184,8 +184,14 @@ class Gibbs:
         beta = xa.DataArray(self.get_history('beta'), dims = ['gibbs_it', 'd_beta'])
         sigma_p = xa.DataArray(self.get_history('sigma_p'), dims=['gibbs_it'])
         sigma_T = xa.DataArray(self.get_history('sigma_T'), dims=['gibbs_it'])
-        H = xa.DataArray(self.get_history('H'), dims = ['gibbs_it', 'd_H'])
-        K = xa.DataArray(self.get_history('K'), dims = ['gibbs_it', 'd_K'])
+        if self.noise_H.n_params <= 1:
+            H = xa.DataArray(self.get_history('H'), dims = ['gibbs_it'])
+        else:
+            H = xa.DataArray(self.get_history('H'), dims = ['gibbs_it', 'd_H'])
+        if self.noise_K.n_params <= 1:
+            K = xa.DataArray(self.get_history('K'), dims = ['gibbs_it'])
+        else:
+            K = xa.DataArray(self.get_history('K'), dims = ['gibbs_it', 'd_K'])
         T13 = xa.DataArray(self.get_history('T13'), dims = ['gibbs_it', 'year'], coords = [np.arange(n), np.concatenate([np.arange(self.model.t1,self.model.t2), np.arange(self.model.t3,self.model.t4)])])
         T_check = xa.DataArray(np.array(self.T_check), dims = ['gibbs_it', 'year'], coords = [np.arange(n), np.arange(self.model.t2,self.model.t3)])
 
