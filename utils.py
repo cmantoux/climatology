@@ -49,6 +49,16 @@ class Noise:
         # Computes the probability density function for the transition kernel of the Metropolis-Hastings algorithm
         raise NotImplementedError()
 
+class WhiteNoise(Noise):
+    def __init__(self):
+        self.n_params = 0
+        self.name = "WN"
+
+    def get_toeplitz(self, n, h):
+        a = np.zeros(n)
+        a[0] = 1
+        return a
+
 class FractionalGaussianNoise(Noise):
     def __init__(self):
         self.n_params = 1

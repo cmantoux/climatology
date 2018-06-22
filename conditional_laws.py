@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.linalg import solve_toeplitz, toeplitz
 
-def simul_alpha(model, noise):
+def simul_alpha(model, noise_H, noise_K):
     '''
     Simulate alpha in Gibbs sampler knowing all other parameters
     '''
@@ -10,7 +10,7 @@ def simul_alpha(model, noise):
 
     T = np.concatenate((params['T13']()[:past], data['T2']()))
     T = np.array([np.ones((present)), T])
-    cov_top = noise.get_toeplitz(present, params['H']())
+    cov_top = noise_H.get_toeplitz(present, params['H']())
     b = solve_toeplitz(cov_top, T.T)
     P1 = np.dot(T, b)
     P2 = np.dot(data['RP'](), b)
@@ -19,7 +19,7 @@ def simul_alpha(model, noise):
     delta = 1/params['sigma_p']()**2 * P2 + np.array([0,1])
     return np.random.multivariate_normal(mean = np.dot(delta, omega), cov = omega)
 
-def simul_beta(model, noise):
+def simul_beta(model, noise_H, noise_K):
     '''
     Simulate beta in Gibbs sampler knowing all other parameters
     '''
@@ -27,7 +27,7 @@ def simul_beta(model, noise):
     past, future = constants['past'](), constants['future']()
     T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
     F = np.array([np.ones((future)), data['S'](), data['V'](), data['C']()])
-    cov_top = noise.get_toeplitz(future, params['K']())
+    cov_top = noise_K.get_toeplitz(future, params['K']())
     b = solve_toeplitz(cov_top, F.T)
     P1 = np.dot(F, b)
     P2 = np.dot(T, b)
@@ -35,7 +35,7 @@ def simul_beta(model, noise):
     delta = 1/params['sigma_T']()**2 * P2 + np.array([0,1,1,1])
     return np.random.multivariate_normal(mean = np.dot(delta, omega), cov = omega)
 
-def simul_s_p(model, noise):
+def simul_s_p(model, noise_H, noise_K):
     '''
     Simulate sigma_p in Gibbs sampler knowing all other parameters
     '''
@@ -43,7 +43,7 @@ def simul_s_p(model, noise):
     past, present = constants['past'](), constants['present']()
     T = np.concatenate((params['T13']()[:past], data['T2']()))
     T = np.array([np.ones((present)), T])
-    cov_top = noise.get_toeplitz(present, params['H']())
+    cov_top = noise_H.get_toeplitz(present, params['H']())
     P1 = np.dot(params['alpha'](), T)
     b = solve_toeplitz(cov_top, data['RP']() - P1)
     P2 = np.dot((data['RP']() - P1).T,b)
@@ -51,7 +51,7 @@ def simul_s_p(model, noise):
     r = 0.1 + 1/2 * P2
     return np.sqrt(1/np.random.gamma(shape = q, scale = 1/r))
 
-def simul_s_T(model, noise):
+def simul_s_T(model, noise_H, noise_K):
     '''
     Simulate sigma_T in Gibbs sampler knowing all other parameters
     '''
@@ -59,7 +59,7 @@ def simul_s_T(model, noise):
     past, future = constants['past'](), constants['future']()
     T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
     F = np.array([np.ones((future)), data['S'](), data['V'](), data['C']()])
-    cov_top = noise.get_toeplitz(future, params['K']())
+    cov_top = noise_K.get_toeplitz(future, params['K']())
     P1 = np.dot(params['beta'](), F)
     b = solve_toeplitz(cov_top, T - P1)
     P2 = np.dot((T - P1).T,b)
@@ -67,15 +67,15 @@ def simul_s_T(model, noise):
     r = 0.1 + 1/2 * P2
     return np.sqrt(1/np.random.gamma(shape = q, scale = 1/r))
 
-def simul_T(model, noise):
+def simul_T(model, noise_H, noise_K):
     '''
     Simulate T13 in Gibbs sampler knowing all other parameters
     '''
     params, data, constants = model.params, model.data, model.constants
     past, present, future = constants['past'](), constants['present'](), constants['future']()
     F = np.array([np.ones((future)), data['S'](), data['V'](), data['C']()]).T
-    inv_covH = np.pad(np.linalg.inv(noise.get_cov(present, params['H']())), pad_width=(0,future-present), mode = 'constant')
-    inv_covK = np.linalg.inv(noise.get_cov(future, params['K']()))
+    inv_covH = np.pad(np.linalg.inv(noise_H.get_cov(present, params['H']())), pad_width=(0,future-present), mode = 'constant')
+    inv_covK = np.linalg.inv(noise_K.get_cov(future, params['K']()))
 
     P1 = np.dot(inv_covH, np.pad(data['RP'](), pad_width=(0,future-present), mode = 'constant') - params['alpha']()[0])
     P2 = np.dot(inv_covK, np.dot(F, params['beta']()))
@@ -101,7 +101,7 @@ def simul_T(model, noise):
     T2 = new_mean2 + np.dot(np.linalg.cholesky(new_cov2), np.random.randn(len(new_mean2)))
     return T13, T2
 
-def simul_H(model, noise):
+def simul_H(model, noise_H, noise_K):
     '''
     Simulate H in Gibbs sampler knowing all other parameters
     '''
@@ -109,17 +109,20 @@ def simul_H(model, noise):
     params, data, constants = model.params, model.data, model.constants
     H = model.params['H']()
 
+    if noise_H.n_params == 0:
+        return H
+
     step_H = constants['step_H']()
     n_iteration = constants['n_iteration']()
 
     # Simulation of H
     acc = 0
     for k in range(n_iteration):
-        new_H = noise.draw_MH(H, step_H)
-        log_p1 = noise.log_p(params, data, constants, 'H', new_H)
-        log_p2 = noise.log_p(params, data, constants, 'H', H)
-        log_q1 = noise.log_q(H, new_H, step_H)
-        log_q2 = noise.log_q(new_H, H, step_H)
+        new_H = noise_H.draw_MH(H, step_H)
+        log_p1 = noise_H.log_p(params, data, constants, 'H', new_H)
+        log_p2 = noise_H.log_p(params, data, constants, 'H', H)
+        log_q1 = noise_H.log_q(H, new_H, step_H)
+        log_q2 = noise_H.log_q(new_H, H, step_H)
         alpha = log_p1 + log_q1 - log_p2 - log_q2
         a = np.random.uniform()
         if np.log(a) <= alpha: # Accept
@@ -129,13 +132,15 @@ def simul_H(model, noise):
 
     return H
 
-def simul_K(model, noise):
+def simul_K(model, noise_H, noise_K):
     '''
     Simulate K in Gibbs sampler knowing all other parameters
     '''
 
     params, data, constants = model.params, model.data, model.constants
     K = model.params['K']()
+    if noise_K.n_params == 0:
+        return K
 
     step_K = constants['step_K']()
     n_iteration = constants['n_iteration']()
@@ -143,11 +148,11 @@ def simul_K(model, noise):
     # Simulation of K
     acc = 0
     for k in range(n_iteration):
-        new_K = noise.draw_MH(K, step_K)
-        log_p1 = noise.log_p(params, data, constants, 'K', new_K)
-        log_p2 = noise.log_p(params, data, constants, 'K', K)
-        log_q1 = noise.log_q(K, new_K, step_K)
-        log_q2 = noise.log_q(new_K, K, step_K)
+        new_K = noise_K.draw_MH(K, step_K)
+        log_p1 = noise_K.log_p(params, data, constants, 'K', new_K)
+        log_p2 = noise_K.log_p(params, data, constants, 'K', K)
+        log_q1 = noise_K.log_q(K, new_K, step_K)
+        log_q2 = noise_K.log_q(new_K, K, step_K)
         alpha = log_p1 + log_q1 - log_p2 - log_q2
         a = np.random.uniform()
         if np.log(a) <= alpha: # Accept

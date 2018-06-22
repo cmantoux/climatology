@@ -14,7 +14,7 @@ import xarray as xa
 
 class Gibbs:
 
-    def __init__(self, model, noise = AR1(), display_dashboard = False):
+    def __init__(self, model, noise_H = AR1(), noise_K=AR1(), display_dashboard = False):
         '''
         Gibbs sampler class (object):
         - params : dic of parameters with initial values
@@ -35,7 +35,8 @@ class Gibbs:
         self.x_ord = OrdinalScale()
         self.y_sc = LinearScale()
         self.x_data = np.array([])
-        self.noise = noise
+        self.noise_H = noise_H
+        self.noise_K = noise_K
         for key in model.params.keys():
             self.history[key] = []
 
@@ -89,10 +90,10 @@ class Gibbs:
     def simulate(self, key):
         var = self.model.params[key]
         if key == 'T13':
-            var.value, T = var.law(self.model, noise = self.noise)
+            var.value, T = var.law(self.model, noise_H = self.noise_H, noise_K = self.noise_K)
             self.T_check.append(T)
         else:    
-            var.value = var.law(self.model, noise = self.noise)
+            var.value = var.law(self.model, noise_H = self.noise_H, noise_K = self.noise_K)
         self.history[key].append(var.value)
 
     def result(self, key, last_n = 100):
