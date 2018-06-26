@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 from utils import AR1
+import validation
 
 import numpy as np
 from IPython.display import display
@@ -152,7 +153,7 @@ class Gibbs:
             plt.show()
     
     def plot_T_reconstruction(self, last_n = 100, alpha = 95):
-        hist_T = self.get_history('T13')[-500:,:]
+        hist_T = self.get_history('T13')[-last_n:,:]
         mean = hist_T.mean(axis=0)
         quantile1 = np.percentile(hist_T, (100-alpha)/2, axis=0)
         quantile2 = np.percentile(hist_T, (100+alpha)/2, axis=0)
@@ -200,8 +201,14 @@ class Gibbs:
         Data.to_netcdf(filename)
         return Data
     
-    def ECP(self, a=0.95):
-        p1 = np.percentile(self.T_check, 100*(1-a)/2, axis=0)
-        p2 = np.percentile(self.T_check, 100*(1+a)/2, axis=0)
-        real_T = self.model.data['T2']()
-        return np.mean((real_T<=p2)*(real_T>=p1))
+    def ECP(self, a=0.95, last_n=5000):
+        return validation.ECP(self.model.data['T2'](), np.array(self.T_check), a, last_n)
+    
+    def RMSE(self, last_n=5000):
+        return validation.RMSE(self.model.data['T2'](), np.array(self.T_check), last_n)
+    
+    def CRPS(self, last_n=5000):
+        return validation.CRPS(self.model.data['T2'](), np.array(self.T_check), last_n)
+    
+    def IS(self, a=0.95, last_n=5000):
+        return validation.IS(self.model.data['T2'](), np.array(self.T_check), a, last_n)
