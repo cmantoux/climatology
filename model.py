@@ -1,4 +1,5 @@
 from conditional_laws import simul_alpha, simul_beta, simul_H, simul_K, simul_s_p, simul_s_T, simul_T
+from conditional_laws_new import *
 import numpy as np
 
 class variable:
@@ -85,6 +86,46 @@ class PaleoModel(model):
         H = variable(name='H', var_type='params', value=H_init, law = simul_H)
         K = variable(name='K', var_type='params', value=K_init, law = simul_K)
         T13 = variable(name='T13', var_type='params', value=np.zeros(past()+future()-present()),law = simul_T)
+
+        self.t1 = t1
+        self.t2 = t2
+        self.t3 = t3
+        self.t4 = t4
+        # Init with true values
+        # alpha = variable(name='alpha', var_type='params', value=np.array([-0.19,0.4]), law = simul_alpha)
+        # beta = variable(name='beta', var_type='params', value=np.array([-0.57,0.02,-0.02,0.15]),law = simul_beta)
+        # sigma_p = variable(name='sigma_p', var_type='params', value=0.007, law = simul_s_p)
+        # sigma_T = variable(name='sigma_T', var_type='params', value=0.015, law = simul_s_T)
+        # H = variable(name='H', var_type='params', value=H_init, law = simul_H)
+        # K = variable(name='K', var_type='params', value=K_init, law = simul_K)
+        # T13 = variable(name='T13', var_type='params', value=np.load('T13.npy'),law = simul_T)
+
+        T2 = variable(name='T2', var_type='data', value = T2)
+        RP = variable(name ='RP', var_type='data', value=RP)
+        S = variable(name ='S', var_type='data', value=S)
+        V = variable(name ='V', var_type='data', value=V)
+        C = variable(name ='C', var_type='data', value=C)
+
+        super().__init__()
+        self.add([past, present, future, step_H, step_K, n_iteration, alpha, beta, sigma_p, sigma_T, H, K, T13, T2, RP, S, V, C])
+
+class PaleoModel2(model):
+    def __init__(self, t1, t2, t3, t4, S, V, C, T2, RP, H_init = 0.5, K_init = 0.5, step_H = 0.05, step_K = 0.05, n_iterations_MH = 100, T13=None):
+        past = variable(name='past', var_type='constants', value=t2-t1)
+        present = variable(name='present', var_type='constants', value=t3-t1)
+        future = variable(name='future', var_type='constants', value=t4-t1)
+        step_H = variable(name='step_H', var_type='constants', value=step_H)
+        step_K = variable(name='step_K', var_type='constants', value=step_K)
+        n_iteration = variable(name='n_iteration', var_type='constants', value=n_iterations_MH)
+
+        alpha = variable(name='alpha', var_type='params', value=np.array([0,0]), law = simul_alpha2)
+        beta = variable(name='beta', var_type='params', value=np.array([0,1,1,1]),law = simul_beta2)
+        sigma_p = variable(name='sigma_p', var_type='params', value=1, law = simul_s_p2)
+        sigma_T = variable(name='sigma_T', var_type='params', value=1, law = simul_s_T2)
+
+        H = variable(name='H', var_type='params', value=H_init, law = simul_H2)
+        K = variable(name='K', var_type='params', value=K_init, law = simul_K2)
+        T13 = variable(name='T13', var_type='params', value=T13,law = simul_T2)
 
         self.t1 = t1
         self.t2 = t2
