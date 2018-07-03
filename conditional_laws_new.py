@@ -12,6 +12,7 @@ def simul_alpha2(model, noise_H, noise_K):
     RP = data['RP']()
     cov_top = noise_H.get_toeplitz(present, params['H']())
     M = np.tril(toeplitz(cov_top))
+    cov_top = cov_top / (1-params['H']()**2)
     u = np.array([np.dot(M,np.ones(len(T))), np.dot(M,T)])
     b = solve_toeplitz(cov_top, u.T)
 
@@ -32,6 +33,7 @@ def simul_beta2(model, noise_H, noise_K):
     T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
     cov_top = noise_K.get_toeplitz(future, params['K']())
     M = np.tril(toeplitz(cov_top))
+    cov_top = cov_top / (1-params['K']()**2)
     S = data['S']()
     V = data['V']()
     C = data['C']()
@@ -55,6 +57,7 @@ def simul_s_p2(model, noise_H, noise_K):
 
     cov_top = noise_H.get_toeplitz(present, params['H']())
     M = np.tril(toeplitz(cov_top))
+    cov_top = cov_top / (1-params['H']()**2)
     u = np.array([np.dot(M,np.ones(len(T))), np.dot(M,T)])
 
     P1 = np.dot(params['alpha'](), u)
@@ -73,6 +76,7 @@ def simul_s_T2(model, noise_H, noise_K):
     T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
     cov_top = noise_K.get_toeplitz(future, params['K']())
     M = np.tril(toeplitz(cov_top))
+    cov_top = cov_top / (1-params['K']()**2)
     S = data['S']()
     V = data['V']()
     C = data['C']()
@@ -126,7 +130,6 @@ def simul_H2(model, noise_H, noise_K):
 
     params, data, constants = model.params, model.data, model.constants
     H = model.params['H']()
-    return H
 
     if noise_H.n_params == 0:
         return H
@@ -138,8 +141,8 @@ def simul_H2(model, noise_H, noise_K):
     acc = 0
     for k in range(n_iteration):
         new_H = noise_H.draw_MH(H, step_H)
-        log_p1 = noise_H.log_p(params, data, constants, 'H', new_H)
-        log_p2 = noise_H.log_p(params, data, constants, 'H', H)
+        log_p1 = noise_H.log_p2(params, data, constants, 'H', new_H)
+        log_p2 = noise_H.log_p2(params, data, constants, 'H', H)
         log_q1 = noise_H.log_q(H, new_H, step_H)
         log_q2 = noise_H.log_q(new_H, H, step_H)
         alpha = log_p1 + log_q1 - log_p2 - log_q2
@@ -158,7 +161,7 @@ def simul_K2(model, noise_H, noise_K):
 
     params, data, constants = model.params, model.data, model.constants
     K = model.params['K']()
-    return K
+    
     if noise_K.n_params == 0:
         return K
 
@@ -169,8 +172,8 @@ def simul_K2(model, noise_H, noise_K):
     acc = 0
     for k in range(n_iteration):
         new_K = noise_K.draw_MH(K, step_K)
-        log_p1 = noise_K.log_p(params, data, constants, 'K', new_K)
-        log_p2 = noise_K.log_p(params, data, constants, 'K', K)
+        log_p1 = noise_K.log_p2(params, data, constants, 'K', new_K)
+        log_p2 = noise_K.log_p2(params, data, constants, 'K', K)
         log_q1 = noise_K.log_q(K, new_K, step_K)
         log_q2 = noise_K.log_q(new_K, K, step_K)
         alpha = log_p1 + log_q1 - log_p2 - log_q2

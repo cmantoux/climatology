@@ -118,10 +118,10 @@ class PaleoModel2(model):
         step_K = variable(name='step_K', var_type='constants', value=step_K)
         n_iteration = variable(name='n_iteration', var_type='constants', value=n_iterations_MH)
 
-        alpha = variable(name='alpha', var_type='params', value=np.array([0,0]), law = simul_alpha2)
+        alpha = variable(name='alpha', var_type='params', value=np.array([0,1]), law = simul_alpha2)
         beta = variable(name='beta', var_type='params', value=np.array([0,1,1,1]),law = simul_beta2)
-        sigma_p = variable(name='sigma_p', var_type='params', value=0.2, law = simul_s_p2)
-        sigma_T = variable(name='sigma_T', var_type='params', value=0.5, law = simul_s_T2)
+        sigma_p = variable(name='sigma_p', var_type='params', value=1, law = simul_s_p2)
+        sigma_T = variable(name='sigma_T', var_type='params', value=1, law = simul_s_T2)
 
         H = variable(name='H', var_type='params', value=H_init, law = simul_H2)
         K = variable(name='K', var_type='params', value=K_init, law = simul_K2)

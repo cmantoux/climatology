@@ -21,7 +21,7 @@ class Noise:
         return np.linalg.slogdet(toeplitz(cov))[1]   # log-determinant
 
     def log_p(self, params, data, constants, key, x):
-        # Computes the log-likelihood for H and K knowing all other parameters
+        # Computes the log-likelihood for H and K knowing all other parameters for PaleoModel
         past, present, future = constants['past'](), constants['present'](), constants['future']()
         if key=='H':
             T = np.concatenate((params['T13']()[:past], data['T2']()))
@@ -40,6 +40,39 @@ class Noise:
             M = T - np.dot(params['beta'](), F.T)
             v = solve_toeplitz(cov, M)
             return -1/2*slogdet-1/(2*params['sigma_T']()**2)*np.inner(M, v)
+    
+    def log_p2(self, params, data, constants, key, x):
+        # Computes the log-likelihood for H and K knowing all other parameters for PaleoModel2
+        past, present, future = constants['past'](), constants['present'](), constants['future']()
+        if key=='H':
+            T = np.concatenate((params['T13']()[:past], data['T2']()))
+            cov_top = self.get_toeplitz(present, x)
+            M = np.tril(toeplitz(cov_top))
+            cov_top = cov_top / (1-x**2)
+            u = np.array([np.dot(M,np.ones(len(T))), np.dot(M,T)])
+            
+            P1 = np.dot(params['alpha'](), u)
+            b = solve_toeplitz(cov_top, data['RP']() - P1)
+            P2 = np.dot((data['RP']() - P1).T,b)
+            
+            slogdet = self.get_logdet(present, x)
+            return 1/2*slogdet-1/(2*params['sigma_p']()**2)*P2
+        
+        if key=='K':
+            T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
+            cov_top = self.get_toeplitz(future, x)
+            M = np.tril(toeplitz(cov_top))
+            cov_top = cov_top / (1-x**2)
+            S = data['S']()
+            V = data['V']()
+            C = data['C']()
+            v = np.array([np.dot(M, np.ones((future))), np.dot(M,S), np.dot(M,V), np.dot(M,C)])
+            P1 = np.dot(params['beta'](), v)
+            b = solve_toeplitz(cov_top, T - P1)
+            P2 = np.dot((T - P1).T,b)
+            
+            slogdet = self.get_logdet(future, x)
+            return -1/2*slogdet-1/(2*params['sigma_T']()**2)*P2
 
     def draw_MH(self):
         # Draws one sample of the H parameter for the Metropolis-Hastings algorithm
