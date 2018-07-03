@@ -28,17 +28,21 @@ def simul_beta2(model, noise_H, noise_K):
     Simulate beta in Gibbs sampler knowing all other parameters
     '''
     params, data, constants = model.params, model.data, model.constants
-    return params['beta']()
     past, future = constants['past'](), constants['future']()
     T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
-    F = np.array([np.ones((future)), data['S'](), data['V'](), data['C']()])
     cov_top = noise_K.get_toeplitz(future, params['K']())
-    b = solve_toeplitz(cov_top, F.T)
-    P1 = np.dot(F, b)
-    P2 = np.dot(T, b)
+    M = np.tril(toeplitz(cov_top))
+    S = data['S']()
+    V = data['V']()
+    C = data['C']()
+    v = np.array([np.dot(M, np.ones((future))), np.dot(M,S), np.dot(M,V), np.dot(M,C)])
+    b = solve_toeplitz(cov_top, v.T)
+    
+    P1 = np.dot(v, b)
+    
     omega = np.linalg.inv(1/params['sigma_T']()**2 * P1 + np.identity(4))
-    delta = 1/params['sigma_T']()**2 * P2 + np.array([0,1,1,1])
-    a = np.random.multivariate_normal(mean = np.dot(delta, omega), cov = omega)
+    mu = (1/params['sigma_T']()**2)*omega.dot(T.dot(b))
+    a = np.random.multivariate_normal(mean = mu, cov = omega)
     return a
 
 def simul_s_p2(model, noise_H, noise_K):
