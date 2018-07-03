@@ -50,12 +50,14 @@ def simul_s_p2(model, noise_H, noise_K):
     Simulate sigma_p in Gibbs sampler knowing all other parameters
     '''
     params, data, constants = model.params, model.data, model.constants
-    return params['sigma_p']()
     past, present = constants['past'](), constants['present']()
     T = np.concatenate((params['T13']()[:past], data['T2']()))
-    T = np.array([np.ones((present)), T])
+
     cov_top = noise_H.get_toeplitz(present, params['H']())
-    P1 = np.dot(params['alpha'](), T)
+    M = np.tril(toeplitz(cov_top))
+    u = np.array([np.dot(M,np.ones(len(T))), np.dot(M,T)])
+
+    P1 = np.dot(params['alpha'](), u)
     b = solve_toeplitz(cov_top, data['RP']() - P1)
     P2 = np.dot((data['RP']() - P1).T,b)
     q = 2 + present/2
@@ -67,12 +69,15 @@ def simul_s_T2(model, noise_H, noise_K):
     Simulate sigma_T in Gibbs sampler knowing all other parameters
     '''
     params, data, constants = model.params, model.data, model.constants
-    return params['sigma_T']()
     past, future = constants['past'](), constants['future']()
     T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
-    F = np.array([np.ones((future)), data['S'](), data['V'](), data['C']()])
     cov_top = noise_K.get_toeplitz(future, params['K']())
-    P1 = np.dot(params['beta'](), F)
+    M = np.tril(toeplitz(cov_top))
+    S = data['S']()
+    V = data['V']()
+    C = data['C']()
+    v = np.array([np.dot(M, np.ones((future))), np.dot(M,S), np.dot(M,V), np.dot(M,C)])
+    P1 = np.dot(params['beta'](), v)
     b = solve_toeplitz(cov_top, T - P1)
     P2 = np.dot((T - P1).T,b)
     q = 2 + future/2
