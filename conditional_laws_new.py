@@ -12,15 +12,15 @@ def simul_alpha2(model, noise_H, noise_K):
     RP = data['RP']()
     cov_top = noise_H.get_toeplitz(present, params['H']())
     M = np.tril(toeplitz(cov_top))
-    u = np.array([np.ones(len(T)), np.dot(M,T)])
+    u = np.array([np.dot(M,np.ones(len(T))), np.dot(M,T)])
     b = solve_toeplitz(cov_top, u.T)
 
     P1 = np.dot(u,b)
 
-    omega = np.linalg.inv(1/params['sigma_p']()**2 * P1 + np.identity(2))
+    omega = np.linalg.inv(P1 + params['sigma_p']()**2 * np.identity(2))
     c = solve_toeplitz(cov_top, RP)
     mu = np.dot(np.dot(omega, u), c)
-    a = np.random.multivariate_normal(mean = mu, cov = omega)
+    a = np.random.multivariate_normal(mean = mu, cov = params['sigma_p']()**2*omega)
     return a
 
 def simul_beta2(model, noise_H, noise_K):
