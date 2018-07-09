@@ -125,8 +125,8 @@ class PaleoModel2(model):
 
         H = variable(name='H', var_type='params', value=H_init, law = simul_H2)
         K = variable(name='K', var_type='params', value=K_init, law = simul_K2)
-        # T13 = variable(name='T13', var_type='params', value=np.zeros(t4-t3 + t2-t1),law = simul_T2)
-        T13 = variable(name='T13', var_type='params', value=T13,law = simul_T2)
+        T13 = variable(name='T13', var_type='params', value=np.zeros(t4-t3 + t2-t1),law = simul_T2)
+        # T13 = variable(name='T13', var_type='params', value=T13,law = simul_T2)
 
         self.t1 = t1
         self.t2 = t2
