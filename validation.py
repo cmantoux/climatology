@@ -42,16 +42,8 @@ def CRPS(real_series, simulated_series, last_n):
     T_check_first_half = T_check[:last_n//2, :]
     T_check_second_half = T_check[last_n//2:, :]
     CRPS_res = np.mean(np.abs(T_check_second_half-T2)-np.abs(T_check_second_half-T_check_first_half)/2)
-    
-    res = 0
-    for t in range(len(T2)):
-        res_tmp = 0
-        for i in range(last_n//2):
-            res_tmp += abs(T_check[last_n//2+i][t]-T2[t])-0.5*abs(T_check[last_n//2+i][t]-T_check[i][t])
-        res_tmp /= last_n//2
-        res += res_tmp
-    res /= len(T2)
-    return CRPS_res, res
+
+    return CRPS_res
 
 def IS(real_series, simulated_series, a=0.95, last_n=5000):
     """
@@ -67,9 +59,9 @@ def IS(real_series, simulated_series, a=0.95, last_n=5000):
     IS_res = []
     for i in range(len(T2)):
         if T2[i] < q1[i]:
-            IS_res.append(2*a_c + 4*(q1[i]-T2[i]))
+            IS_res.append(2*a_c*(q3[i]-q1[i]) + 4*(q1[i]-T2[i]))
         elif T2[i] > q3[i]:
-            IS_res.append(2*a_c + 4*(T2[i]-q3[i]))
+            IS_res.append(2*a_c*(q3[i]-q1[i]) + 4*(T2[i]-q3[i]))
         else:
-            IS_res.append(2*a_c)
+            IS_res.append(2*a_c*(q3[i]-q1[i]))
     return np.mean(IS_res)

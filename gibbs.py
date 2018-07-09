@@ -159,17 +159,15 @@ class Gibbs:
         quantile2 = np.percentile(hist_T, (100+alpha)/2, axis=0)
         plt.figure(figsize=(15,10))
         t1 = 1000
-        past, present, future = self.model.constants['past'](), self.model.constants['present'](), self.model.constants['future']() 
-        plt.plot(np.arange(t1, t1 + past), mean[:past], color = 'r', label = 'Mean')
-        plt.plot(np.arange(t1 + present ,t1 + future), mean[past:], color = 'r')
-
-        plt.plot(np.arange(t1, t1 + past), quantile1[:past], color = 'g', label = 'Q 95%')
-        plt.plot(np.arange(t1 + present,t1 + future), quantile1[past:], color = 'g')
-
-        plt.plot(np.arange(t1, t1 + past), quantile2[:past], color = 'g')
-        plt.plot(np.arange(t1 + present,t1 + future), quantile2[past:], color = 'g')
-
+        past, present, future = self.model.constants['past'](), self.model.constants['present'](), self.model.constants['future']()
+        
         plt.plot(np.arange(t1 + past, t1 + present), self.model.data['T2'](), color = 'b', label = 'Known temperatures')
+        
+        plt.plot(np.arange(t1, t1 + past), mean[:past], color = 'g', label = 'Mean temperatures')
+        plt.plot(np.arange(t1 + present ,t1 + future), mean[past:], color = 'g')
+        plt.fill_between(np.arange(t1, t1 + past), quantile1[:past], quantile2[:past], color="g", alpha=0.3, label="Q 95%")
+        plt.fill_between(np.arange(t1 + present,t1 + future), quantile1[past:], quantile2[past:], color="g", alpha=0.3)
+
 
         plt.legend()
         plt.show()
