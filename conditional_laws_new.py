@@ -6,6 +6,7 @@ def simul_alpha2(model, noise_H, noise_K):
     Simulate alpha in Gibbs sampler knowing all other parameters
     '''
     params, data, constants = model.params, model.data, model.constants
+    # return params['alpha']()
     past, present = constants['past'](), constants['present']()
     # print(params['T13']())
     T = np.concatenate((params['T13']()[:past], data['T2']()))
@@ -29,6 +30,7 @@ def simul_beta2(model, noise_H, noise_K):
     Simulate beta in Gibbs sampler knowing all other parameters
     '''
     params, data, constants = model.params, model.data, model.constants
+    # return params['beta']()
     past, future = constants['past'](), constants['future']()
     T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
     cov_top = noise_K.get_toeplitz(future, params['K']())
@@ -52,6 +54,7 @@ def simul_s_p2(model, noise_H, noise_K):
     Simulate sigma_p in Gibbs sampler knowing all other parameters
     '''
     params, data, constants = model.params, model.data, model.constants
+    # return params['sigma_p']()
     past, present = constants['past'](), constants['present']()
     T = np.concatenate((params['T13']()[:past], data['T2']()))
 
@@ -72,6 +75,7 @@ def simul_s_T2(model, noise_H, noise_K):
     Simulate sigma_T in Gibbs sampler knowing all other parameters
     '''
     params, data, constants = model.params, model.data, model.constants
+    # return params['sigma_T']()
     past, future = constants['past'](), constants['future']()
     T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
     cov_top = noise_K.get_toeplitz(future, params['K']())
@@ -93,19 +97,29 @@ def simul_T2(model, noise_H, noise_K):
     Simulate T13 in Gibbs sampler knowing all other parameters
     '''
     params, data, constants = model.params, model.data, model.constants
-    return params['T13'](), data['T2']()
+    # return params['T13'](), data['T2']()
     past, present, future = constants['past'](), constants['present'](), constants['future']()
-    F = np.array([np.ones((future)), data['S'](), data['V'](), data['C']()]).T
-    inv_covH = np.pad(np.linalg.inv(noise_H.get_cov(present, params['H']())), pad_width=(0,future-present), mode = 'constant')
-    inv_covK = np.linalg.inv(noise_K.get_cov(future, params['K']()))
+    cov_top_H = noise_K.get_toeplitz(present, params['H']())
+    cov_top_K = noise_K.get_toeplitz(future, params['K']())
+    M_H = np.tril(toeplitz(cov_top_H))
+    M_K = np.tril(toeplitz(cov_top_K))
+    cov_top_H = cov_top_H / (1-params['H']()**2)
+    cov_top_K = cov_top_K / (1-params['K']()**2)
+    S = data['S']()
+    V = data['V']()
+    C = data['C']()
+    v = np.array([np.dot(M_K, np.ones((future))), np.dot(M_K,S), np.dot(M_K,V), np.dot(M_K,C)])
 
-    P1 = np.dot(inv_covH, np.pad(data['RP'](), pad_width=(0,future-present), mode = 'constant') - params['alpha']()[0])
-    P2 = np.dot(inv_covK, np.dot(F, params['beta']()))
-    omega = np.linalg.inv((params['alpha']()[1]/params['sigma_p']())**2*inv_covH + 1/params['sigma_T']()**2 * inv_covK)
-    delta = params['alpha']()[1]/params['sigma_p']()**2 * P1 + 1/params['sigma_T']()**2 * P2
-    mu = np.dot(delta, omega)
+    inv_covK = np.linalg.inv(toeplitz(cov_top_K))
+    inv_covH = np.linalg.inv(toeplitz(cov_top_H))
+
+    P1 = np.pad(np.dot(M_H.T, np.dot(inv_covH, M_H)), pad_width = (0,future-present), mode='constant')
+    omega = np.linalg.inv((params['alpha']()[1]/params['sigma_p']())**2*P1 + 1/params['sigma_T']()**2 * inv_covK)
+    a = solve_toeplitz(cov_top_K, np.dot(params['beta'](),v))
+    b = np.pad(np.dot(M_H.T, solve_toeplitz(cov_top_H, data['RP']() - params['alpha']()[0]*np.dot(M_H, np.ones(present)))), pad_width=(0,future-present), mode='constant')
+    mu = 1/params['sigma_T']()**2*np.dot(omega, a) + params['alpha']()[1]/params['sigma_p']()**2*np.dot(omega, b)
     # T = mu + np.dot(np.linalg.cholesky(omega), np.random.randn(len(mu)))
-
+    # print(params['alpha']()[1]/params['sigma_p']()**2*np.dot(omega, b))
 
     M1 = omega[past:present, past:present]
     M1_inv = np.linalg.inv(M1)
@@ -130,6 +144,7 @@ def simul_H2(model, noise_H, noise_K):
 
     params, data, constants = model.params, model.data, model.constants
     H = model.params['H']()
+    return H
 
     if noise_H.n_params == 0:
         return H
@@ -161,6 +176,7 @@ def simul_K2(model, noise_H, noise_K):
 
     params, data, constants = model.params, model.data, model.constants
     K = model.params['K']()
+    return K
     
     if noise_K.n_params == 0:
         return K

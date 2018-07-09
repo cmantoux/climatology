@@ -56,7 +56,7 @@ class Noise:
             P2 = np.dot((data['RP']() - P1).T,b)
             
             slogdet = self.get_logdet(present, x)
-            return 1/2*slogdet-1/(2*params['sigma_p']()**2)*P2
+            return -1/2*slogdet-1/(2*params['sigma_p']()**2)*P2
         
         if key=='K':
             T = np.concatenate((params['T13']()[:past], data['T2'](), params['T13']()[past:]))
