@@ -27,6 +27,7 @@ class Dashboard(VBox):
         self.dic_figures = {}
         self.labels = {}
         for key in model.params.keys():
-            self.dic_figures[key] = Fig(model, key)
-            self.labels[key] = HTML(layout = Layout(width='200px', height='200px', padding='20px'))
+            if key not in ['S', 'V', 'C']:
+                self.dic_figures[key] = Fig(model, key)
+                self.labels[key] = HTML(layout = Layout(width='200px', height='200px', padding='20px'))
         super().__init__([HBox([self.dic_figures[figure], self.labels[figure]]) for figure in self.dic_figures])

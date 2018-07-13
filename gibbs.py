@@ -64,7 +64,7 @@ class Gibbs:
         self.model.n_iteration += 1
         for key in self.model.params.keys():
             self.simulate(key)
-            if update_plot:
+            if update_plot and key not in ['S', 'V', 'C']:
                 self.update_plot(key)
     
     def update_plot(self, key):
