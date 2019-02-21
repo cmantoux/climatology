@@ -174,9 +174,9 @@ class Gibbs:
 
     def save_to_xarray(self, filename = 'dataset.netcdf'):
         RP = xa.DataArray(self.model.data['RP'](), dims=['year'], coords=[np.arange(self.model.t1,self.model.t3)])
-        S = xa.DataArray(self.model.data['S'](), dims=['year'], coords=[np.arange(self.model.t1,self.model.t4)])
-        V = xa.DataArray(self.model.data['V'](), dims=['year'], coords=[np.arange(self.model.t1,self.model.t4)])
-        C = xa.DataArray(self.model.data['C'](), dims=['year'], coords=[np.arange(self.model.t1,self.model.t4)])
+        S = xa.DataArray(self.model.data['S_cst'](), dims=['year'], coords=[np.arange(self.model.t1,self.model.t4)])
+        V = xa.DataArray(self.model.data['V_cst'](), dims=['year'], coords=[np.arange(self.model.t1,self.model.t4)])
+        C = xa.DataArray(self.model.data['C_cst'](), dims=['year'], coords=[np.arange(self.model.t1,self.model.t4)])
         T2 = xa.DataArray(self.model.data['T2'](), dims=['year'], coords=[np.arange(self.model.t2,self.model.t3)])
         
         n = len(self.get_history('sigma_p'))
