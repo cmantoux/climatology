@@ -1,3 +1,5 @@
 *.ipynb
+!Paleoclimatology - uncertainty.ipynb
 .ipynb_checkpoints/
 __pycache__/
+main.py
